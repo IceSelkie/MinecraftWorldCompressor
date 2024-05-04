@@ -1,0 +1,3 @@
+# Minecraft World Compressor
+
+Minecraft worlds can often become large in file size, making them difficult to backup or archive many versions of a single world. By default, minecraft uses the fast and simple zlib algorithm (deflate) for compressing chunk data. This project aims to recompress minecraft worlds with a better compression algorithm to greatly reduce world sizes, and eventually allow for world diffing so only blocks that changed are stored, allowing for efficient storage of many similar versions of a world.
