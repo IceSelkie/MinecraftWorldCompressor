@@ -12,24 +12,33 @@ TAG_Compound = 10;
 TAG_Int_Array = 11;
 TAG_Long_Array = 12;
 
-function nbtToJsonLossy(buf, offset={offset:0}, returnAsTuple=false) {
+TAGNAME = ['TAG_End', 'TAG_Byte', 'TAG_Short', 'TAG_Int', 'TAG_Long', 'TAG_Float', 'TAG_Double', 'TAG_Byte_Array', 'TAG_String', 'TAG_List', 'TAG_Compound', 'TAG_Int_Array', 'TAG_Long_Array'];
+TAGSIZE = Object.fromEntries([ [TAG_End, 1], [TAG_Byte, 1], [TAG_Short, 2], [TAG_Int, 4], [TAG_Long, 8], [TAG_Float, 4], [TAG_Double, 8] ]);
+TAGLISTTYPE = Object.fromEntries([ [TAG_Byte_Array,TAG_Byte], [TAG_Int_Array,TAG_Int], [TAG_Long_Array,TAG_Long] ]);
+TAGLISTMULTI = Object.fromEntries([ [TAG_Byte_Array,1], [TAG_Int_Array,4], [TAG_Long_Array,8] ]);
+
+ENUM_SKIP_ALL_CHILDREN = 'skip';
+ENUM_MODIFY_THIS = 'modify';
+ENUM_INSPECT_CHILDREN = 'inspect';
+
+function readNbt(buf, offset={offset:0}, returnAsTuple=false) {
   if (buf.length<=offset.offset)
     return null;
   let type = buf.readUInt8(offset.offset++);
   if (type == TAG_End)
     return null;
 
-  let name = readValue(buf, 8, offset);
+  let name = readNbtValue(buf, TAG_String, offset);
 
   if (returnAsTuple)
-    return [name, readValue(buf, type, offset)];
+    return [name, readNbtValue(buf, type, offset)];
 
   let ret = {};
-  ret[name] = readValue(buf, type, offset);
+  ret[name] = readNbtValue(buf, type, offset);
   return ret;
 }
 
-function readValue(buf, type, offset) {
+function readNbtValue(buf, type, offset={offset:0}) {
   if (type == 0)
     return null;
   if (type > 12)
@@ -70,7 +79,7 @@ function readValue(buf, type, offset) {
 
     case TAG_Compound: // 10
       ret = [];
-      while (next = nbtToJsonLossy(buf, offset, true))
+      while (next = readNbt(buf, offset, true))
         ret.push(next);
       return Object.fromEntries(ret);
 
@@ -78,14 +87,14 @@ function readValue(buf, type, offset) {
     case TAG_List: // 9
     case TAG_Int_Array: // 11
     case TAG_Long_Array: // 12
-      let contentType = type==TAG_Byte_Array?TAG_Byte : type==TAG_Int_Array?TAG_Int : type==TAG_Long_Array?TAG_Long : readValue(buf, TAG_Byte, offset);
-      let count = readValue(buf, TAG_Int, offset);
+      let contentType = type==TAG_Byte_Array?TAG_Byte : type==TAG_Int_Array?TAG_Int : type==TAG_Long_Array?TAG_Long : readNbtValue(buf, TAG_Byte, offset);
+      let count = readNbtValue(buf, TAG_Int, offset);
       ret = new Array(count).fill(null);
       for (let i=0; i<count; i++)
-        ret[i] = readValue(buf, contentType, offset);
+        ret[i] = readNbtValue(buf, contentType, offset);
       return ret;
 
     default:
-      throw new Error(`Not implemented yet: ${type} (readValue)`);
+      throw new Error(`Not implemented yet: ${type} (readNbtValue)`);
   }
 }

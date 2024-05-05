@@ -2,7 +2,8 @@ fs = require("fs");
 path = require("path");
 zlib = require("zlib"); null;
 eval(""+fs.readFileSync("./nbt.js"));
-
+eval(""+fs.readFileSync("./nbtModify.js"));
+eval(""+fs.readFileSync("./nbtSerialize.js"));
 
 function getChunkAges(fname, ret=[]){
   let buf = fs.readFileSync(fname);
