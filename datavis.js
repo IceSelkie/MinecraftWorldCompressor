@@ -26,3 +26,6 @@ function toSvg(ages) {
   });
   return `${start}\n  ${ret.join("\n  ")}\n${end}`;
 }
+
+
+// heightmap?

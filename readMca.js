@@ -26,7 +26,7 @@ function getChunkAges(fname, ret=[]){
 
 function parseSector({palette, data}) {
   if (palette.length == 1)
-    return new Array(4096).fill(palette[0]);
+    return new Array(4096).fill(0);
   let bitsPerBlock = Math.max(4,Math.ceil(Math.log(palette.length)/Math.log(2)));
   let blocksPerLong = Math.floor(64/bitsPerBlock);
   let parsedSector = data.map(a=>
@@ -42,20 +42,61 @@ function parseSector({palette, data}) {
     .flat().slice(0,4096)
     // Convert back to integer values
     .map(a=>Number.parseInt(a,2))
-    // Index back into palette
-    .map(a=>palette[a]);
   return parsedSector;
 }
 
-// nbtToJsonLossy(getRegionData(fname)[0].raw)[""].sections.map(a=>a.block_states)
+// readNbt(getRegionData(fname)[0].raw)[""].sections.map(a=>a.block_states)
 // time(()=>_.map(parseSector)) ; null
 
 
 
 
+function bitsFromPaletteLength(paletteLength, minimum=1) {
+  return Math.max(minimum, Math.ceil(Math.log(paletteLength)/Math.log(2)));
+}
 
-function unpackDenseArray(arr, bitsPerObj=4, expectedQty=4096, bitsPerNumber=64) {
-  return null;
+function unpackDenseArray(nums, bitsPerObj, expectedQty, bitsPerNumber=64) {
+  if (bitsPerNumber==64)
+    return unpackDenseArrayLongs(nums,bitsPerObj,expectedQty);
+
+  let objsPerNumber = Math.floor(bitsPerNumber/bitsPerObj);
+  let groupBitsRegex = RegExp(`(${".".repeat(bitsPerObj)})`);
+
+  let mask = Number((1n<<BigInt(bitsPerObj))-1n);
+  let ret = new Array(expectedQty).fill(null);
+  let index=0;
+  for (let i=0; i<nums.length && index<expectedQty; i++) {
+    let curr = nums[i];
+    for (j=0; j<objsPerNumber && index<expectedQty; j++) {
+      ret[index++] = curr & mask;
+      curr>>>=bitsPerObj;
+    }
+  }
+  return ret;
+  // Equivilant Slow Version:
+  // return nums.map(oneNum=>
+  //   oneNum.toString(2).padStart(bitsPerNumber,"0")
+  //   .slice(bitsPerNumber-objsPerNumber*bitsPerObj)
+  //   .split(groupBitsRegex).filter(a=>a)
+  //   .reverse()
+  // ).flat().slice(0,expectedQty)
+  // .map(binaryString=>Number.parseInt(binaryString,2));
+}
+function unpackDenseArrayLongs(nums, bitsPerObj, expectedQty) {
+  let objsPerNumber = Math.floor(64/bitsPerObj);
+  let groupBitsRegex = RegExp(`(${".".repeat(bitsPerObj)})`);
+  bitsPerObj = BigInt(bitsPerObj);
+  let mask = (1n<<bitsPerObj)-1n;
+  let ret = new Array(expectedQty).fill(null);
+  let index=0;
+  for (let i=0; i<nums.length && index<expectedQty; i++) {
+    let curr = nums[i];
+    for (j=0; j<objsPerNumber && index<expectedQty; j++) {
+      ret[index++] = Number(curr & mask);
+      curr>>=bitsPerObj;
+    }
+  }
+  return ret;
 }
 
 
